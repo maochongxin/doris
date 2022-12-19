@@ -104,7 +104,7 @@ public class FunctionCallExpr extends Expr {
                 Preconditions.checkArgument(children.get(1) instanceof IntLiteral
                                 || (children.get(1) instanceof CastExpr
                                 && children.get(1).getChild(0) instanceof IntLiteral),
-                        "2nd argument of function round/floor/ceil/truncate must be literal");
+                        "2nd argument of function round/round_bankers/floor/ceil/truncate must be literal");
                 if (children.get(1) instanceof CastExpr && children.get(1).getChild(0) instanceof IntLiteral) {
                     children.get(1).getChild(0).setType(children.get(1).getType());
                     children.set(1, children.get(1).getChild(0));
@@ -1032,6 +1032,7 @@ public class FunctionCallExpr extends Expr {
 
     @Override
     public void analyzeImpl(Analyzer analyzer) throws AnalysisException {
+        LOG.warn(1);
         if (isMergeAggFn) {
             // This is the function call expr after splitting up to a merge aggregation.
             // The function has already been analyzed so just do the minimal sanity
@@ -1045,7 +1046,7 @@ public class FunctionCallExpr extends Expr {
             // Preconditions.checkState(!type.isWildcardDecimal());
             return;
         }
-
+        LOG.warn(2);
         if (fnName.getFunction().equals(FunctionSet.COUNT) && fnParams.isDistinct()) {
             // Treat COUNT(DISTINCT ...) special because of how we do the equal.
             // There is no version of COUNT() that takes more than 1 argument but after
@@ -1062,6 +1063,7 @@ public class FunctionCallExpr extends Expr {
             }
             return;
         }
+        LOG.warn(3);
         Type[] argTypes = new Type[this.children.size()];
         for (int i = 0; i < this.children.size(); ++i) {
             this.children.get(i).analyze(analyzer);
@@ -1071,8 +1073,9 @@ public class FunctionCallExpr extends Expr {
         analyzeBuiltinAggFunction(analyzer);
 
         analyzeArrayFunction(analyzer);
-
+        LOG.warn(4);
         if (fnName.getFunction().equalsIgnoreCase("sum")) {
+            LOG.warn(5);
             if (this.children.isEmpty()) {
                 throw new AnalysisException("The " + fnName + " function must has one input param");
             }
@@ -1084,6 +1087,7 @@ public class FunctionCallExpr extends Expr {
             fn = getBuiltinFunction(fnName.getFunction(), new Type[] {type},
                     Function.CompareMode.IS_NONSTRICT_SUPERTYPE_OF);
         } else if (fnName.getFunction().equalsIgnoreCase("count_distinct")) {
+            LOG.warn(6);
             Type compatibleType = this.children.get(0).getType();
             for (int i = 1; i < this.children.size(); ++i) {
                 Type type = this.children.get(i).getType();
@@ -1097,6 +1101,7 @@ public class FunctionCallExpr extends Expr {
             fn = getBuiltinFunction(fnName.getFunction(), new Type[] {compatibleType},
                     Function.CompareMode.IS_NONSTRICT_SUPERTYPE_OF);
         } else if (fnName.getFunction().equalsIgnoreCase(FunctionSet.WINDOW_FUNNEL)) {
+            LOG.warn(7);
             if (fnParams.exprs() == null || fnParams.exprs().size() < 4) {
                 throw new AnalysisException("The " + fnName + " function must have at least four params");
             }
@@ -1132,6 +1137,7 @@ public class FunctionCallExpr extends Expr {
                 uncheckedCastChild(ScalarType.DATETIMEV2, 2);
             }
         } else if (fnName.getFunction().equalsIgnoreCase(FunctionSet.RETENTION)) {
+            LOG.warn(8);
             if (this.children.isEmpty()) {
                 throw new AnalysisException("The " + fnName + " function must have at least one param");
             }
@@ -1148,6 +1154,7 @@ public class FunctionCallExpr extends Expr {
                 Function.CompareMode.IS_NONSTRICT_SUPERTYPE_OF);
         } else if (fnName.getFunction().equalsIgnoreCase(FunctionSet.SEQUENCE_MATCH)
                 || fnName.getFunction().equalsIgnoreCase(FunctionSet.SEQUENCE_COUNT)) {
+            LOG.warn(9);
             if (fnParams.exprs() == null || fnParams.exprs().size() < 4) {
                 throw new AnalysisException("The " + fnName + " function must have at least four params");
             }
@@ -1178,6 +1185,7 @@ public class FunctionCallExpr extends Expr {
             fn = getBuiltinFunction(fnName.getFunction(), childTypes,
                 Function.CompareMode.IS_NONSTRICT_SUPERTYPE_OF);
         } else if (fnName.getFunction().equalsIgnoreCase("if")) {
+            LOG.warn(10);
             Type[] childTypes = collectChildReturnTypes();
             Type assignmentCompatibleType = ScalarType.getAssignmentCompatibleType(childTypes[1], childTypes[2], true);
             childTypes[1] = assignmentCompatibleType;
@@ -1189,6 +1197,7 @@ public class FunctionCallExpr extends Expr {
             }
         } else if (AggregateFunction.SUPPORT_ORDER_BY_AGGREGATE_FUNCTION_NAME_SET.contains(
                 fnName.getFunction().toLowerCase())) {
+            LOG.warn(11);
             // order by elements add as child like windows function. so if we get the
             // param of arg, we need remove the order by elements
             Type[] childTypes = collectChildReturnTypes();
@@ -1198,11 +1207,14 @@ public class FunctionCallExpr extends Expr {
                     Function.CompareMode.IS_NONSTRICT_SUPERTYPE_OF);
         } else if (STDDEV_FUNCTION_SET.contains(fnName.getFunction().toLowerCase()) && children.size() == 1
                 && collectChildReturnTypes()[0].isDecimalV3()) {
+            LOG.warn(12);
             fn = getBuiltinFunction(fnName.getFunction(), new Type[] {Type.DOUBLE},
                     Function.CompareMode.IS_NONSTRICT_SUPERTYPE_OF);
         } else {
+            LOG.warn(13);
             // now first find table function in table function sets
             if (isTableFnCall) {
+                LOG.warn(14);
                 Type[] childTypes = collectChildReturnTypes();
                 fn = getTableFunction(fnName.getFunction(), childTypes,
                         Function.CompareMode.IS_NONSTRICT_SUPERTYPE_OF);
@@ -1210,6 +1222,7 @@ public class FunctionCallExpr extends Expr {
                     throw new AnalysisException(getFunctionNotFoundError(argTypes));
                 }
             } else {
+                LOG.warn(15);
                 // now first find function in built-in functions
                 if (Strings.isNullOrEmpty(fnName.getDb())) {
                     Type[] childTypes = collectChildReturnTypes();
