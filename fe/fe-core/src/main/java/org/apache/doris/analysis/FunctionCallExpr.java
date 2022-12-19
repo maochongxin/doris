@@ -1225,6 +1225,7 @@ public class FunctionCallExpr extends Expr {
                 LOG.warn(15);
                 // now first find function in built-in functions
                 if (Strings.isNullOrEmpty(fnName.getDb())) {
+                    LOG.warn(16);
                     Type[] childTypes = collectChildReturnTypes();
                     fn = getBuiltinFunction(fnName.getFunction(), childTypes,
                             Function.CompareMode.IS_NONSTRICT_SUPERTYPE_OF);
@@ -1232,7 +1233,9 @@ public class FunctionCallExpr extends Expr {
 
                 // find user defined functions
                 if (fn == null) {
+                    LOG.warn(17);
                     if (!analyzer.isUDFAllowed()) {
+                        LOG.warn(18);
                         throw new AnalysisException(
                                 "Does not support non-builtin functions, or function does not exist: "
                                         + this.toSqlImpl());
@@ -1240,14 +1243,17 @@ public class FunctionCallExpr extends Expr {
 
                     String dbName = fnName.analyzeDb(analyzer);
                     if (!Strings.isNullOrEmpty(dbName)) {
+                        LOG.warn(19);
                         // check operation privilege
                         if (!Env.getCurrentEnv().getAuth()
                                 .checkDbPriv(ConnectContext.get(), dbName, PrivPredicate.SELECT)) {
                             ErrorReport.reportAnalysisException(ErrorCode.ERR_SPECIFIC_ACCESS_DENIED_ERROR, "SELECT");
                         }
+                        LOG.warn(20);
                         // TODO(gaoxin): ExternalDatabase not implement udf yet.
                         DatabaseIf db = Env.getCurrentEnv().getInternalCatalog().getDbNullable(dbName);
                         if (db != null && (db instanceof Database)) {
+                            LOG.warn(21);
                             Function searchDesc =
                                     new Function(fnName, Arrays.asList(collectChildReturnTypes()), Type.INVALID, false);
                             fn = ((Database) db).getFunction(searchDesc,
