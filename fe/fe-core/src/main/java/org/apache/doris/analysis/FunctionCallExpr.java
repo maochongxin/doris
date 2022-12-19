@@ -1224,6 +1224,7 @@ public class FunctionCallExpr extends Expr {
             } else {
                 LOG.warn(15);
                 // now first find function in built-in functions
+                LOG.warn("dbnane: %s", fnName.getDb());
                 if (Strings.isNullOrEmpty(fnName.getDb())) {
                     LOG.warn(16);
                     Type[] childTypes = collectChildReturnTypes();
