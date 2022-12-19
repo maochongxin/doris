@@ -1203,13 +1203,13 @@ public class FunctionSet<T> {
         LOG.warn("function name: ", desc.functionName());
         List<Function> fns;
         if (isTableFunction) {
-                LOG.warn(1111111);
+            LOG.warn(1111111);
             fns = tableFunctions.get(desc.functionName());
         } else if (desc.isVectorized()) {
-                LOG.warn(222222222);
+            LOG.warn(222222222);
             fns = vectorizedFunctions.get(desc.functionName());
         } else {
-                LOG.warn(333333333);
+            LOG.warn(333333333);
             fns = functions.get(desc.functionName());
         }
         if (fns == null) {
