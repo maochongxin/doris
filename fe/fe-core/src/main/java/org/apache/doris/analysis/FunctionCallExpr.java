@@ -99,7 +99,8 @@ public class FunctionCallExpr extends Expr {
         java.util.function.BiFunction<ArrayList<Expr>, Type, Type> roundRule = (children, returnType) -> {
             Preconditions.checkArgument(children != null && children.size() > 0);
             if (children.size() == 1 && children.get(0).getType().isDecimalV3()) {
-                return ScalarType.createDecimalV3Type(children.get(0).getType().getPrecision(), 0);
+                return ScalarType.createDecimalV3Type(children.get(0).getType().getPrecision(),
+                           ((ScalarType) children.get(0).getType()).decimalScale());
             } else if (children.size() == 2) {
                 Preconditions.checkArgument(children.get(1) instanceof IntLiteral
                                 || (children.get(1) instanceof CastExpr
@@ -125,7 +126,7 @@ public class FunctionCallExpr extends Expr {
             Preconditions.checkArgument(children != null && children.size() > 0);
             if (children.get(0).getType().isDecimalV3()) {
                 return ScalarType.createDecimalV3Type(ScalarType.MAX_DECIMAL128_PRECISION,
-                        Math.max(((ScalarType) children.get(0).getType()).getScalarScale(), 4));
+                        ((ScalarType) children.get(0).getType()).getScalarScale());
             } else {
                 return returnType;
             }
@@ -148,7 +149,6 @@ public class FunctionCallExpr extends Expr {
         });
 
         PRECISION_INFER_RULE.put("round", roundRule);
-        PRECISION_INFER_RULE.put("round_bankers", roundRule);
         PRECISION_INFER_RULE.put("ceil", roundRule);
         PRECISION_INFER_RULE.put("floor", roundRule);
         PRECISION_INFER_RULE.put("dround", roundRule);
@@ -378,7 +378,8 @@ public class FunctionCallExpr extends Expr {
     }
 
     @Override
-    protected Expr substituteImpl(ExprSubstitutionMap smap, ExprSubstitutionMap disjunctsMap, Analyzer analyzer) {
+    protected Expr substituteImpl(ExprSubstitutionMap smap, Analyzer analyzer)
+            throws AnalysisException {
         if (aggFnParams != null && aggFnParams.exprs() != null) {
             ArrayList<Expr> newParams = new ArrayList<Expr>();
             for (Expr expr : aggFnParams.exprs()) {
@@ -392,7 +393,7 @@ public class FunctionCallExpr extends Expr {
             aggFnParams = aggFnParams
                     .clone(newParams);
         }
-        return super.substituteImpl(smap, disjunctsMap, analyzer);
+        return super.substituteImpl(smap, analyzer);
     }
 
     @Override
@@ -739,14 +740,6 @@ public class FunctionCallExpr extends Expr {
                 && ((!arg.type.isNumericType() && !arg.type.isNull()) || arg.type.isOnlyMetricType())) {
             throw new AnalysisException(fnName.getFunction() + " requires a numeric parameter: " + this.toSql());
         }
-        // DecimalV3 scale lower than DEFAULT_MIN_AVG_DECIMAL128_SCALE should do cast
-        if (fnName.getFunction().equalsIgnoreCase("avg") && arg.type.isDecimalV3()
-                && arg.type.getDecimalDigits() < ScalarType.DEFAULT_MIN_AVG_DECIMAL128_SCALE) {
-            Type t = ScalarType.createDecimalType(arg.type.getPrimitiveType(), arg.type.getPrecision(),
-                    ScalarType.DEFAULT_MIN_AVG_DECIMAL128_SCALE);
-            Expr e = getChild(0).castTo(t);
-            setChild(0, e);
-        }
         if (fnName.getFunction().equalsIgnoreCase("sum_distinct")
                 && ((!arg.type.isNumericType() && !arg.type.isNull()) || arg.type.isOnlyMetricType())) {
             throw new AnalysisException(
@@ -825,11 +818,10 @@ public class FunctionCallExpr extends Expr {
 
         if ((fnName.getFunction().equalsIgnoreCase("HLL_UNION_AGG")
                 || fnName.getFunction().equalsIgnoreCase("HLL_CARDINALITY")
-                || fnName.getFunction().equalsIgnoreCase("HLL_RAW_AGG")
-                || fnName.getFunction().equalsIgnoreCase("HLL_UNION"))
+                || fnName.getFunction().equalsIgnoreCase("HLL_RAW_AGG"))
                 && !arg.type.isHllType()) {
             throw new AnalysisException(
-                    "HLL_UNION, HLL_UNION_AGG, HLL_RAW_AGG and HLL_CARDINALITY's params must be hll column");
+                    "HLL_UNION_AGG, HLL_RAW_AGG and HLL_CARDINALITY's params must be hll column");
         }
 
         if (fnName.getFunction().equalsIgnoreCase("min")
